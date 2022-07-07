@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  db:
+    container_name: collections_db
+    image: postgres:14.3-alpine
+    environment:
+      POSTGRES_PASSWORD: "12345678"
+      POSTGRES_USER: "pg"
+      POSTGRES_DB: "pg"
+      PGDATA: "/var/lib/postgresql/data"
+    ports:
+      - "5434:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      network:
+  api:
+    container_name: collections_api
+    build:
+      dockerfile: Collections.Api/Dockerfile
+      args:
+        buildnbinfo: 1
+    environment:
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      DB_NAME: "pg"
+      DB_USERNAME: "pg"
+      DB_PASSWORD: "12345678"
+      JWT_SECRET: "jH5VQSyKNHhQxU5Yy+xyOq2nyBX7egn9p3u+9PaHdluCXraKvQv74bazjUfLzN9H"
+    ports:
+      - "5003:80"
+    networks:
+      network:
+    depends_on:
+      - "db"
+networks:
+  network:
+volumes:
+  db-data:
