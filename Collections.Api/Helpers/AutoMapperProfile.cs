@@ -1,18 +1,62 @@
 using AutoMapper;
-using Task4Back.Entities;
-using Task4Back.Models.Users;
+using Collections.Api.Entities;
+using Collections.Api.Models.Collections;
+using Collections.Api.Models.Users;
 
-namespace Task4Back.Helpers
+namespace Collections.Api.Helpers;
+
+public class AutoMapperProfile : Profile
 {
-    public class AutoMapperProfile : Profile
+    public AutoMapperProfile()
     {
-        public AutoMapperProfile()
-        {
-            _ = CreateMap<User, AuthenticationResponse>();
+        CreateMap<User, AuthenticationResponse>();
 
-            _ = CreateMap<User, UserModel>();
+        CreateMap<User, UserData>();
 
-            _ = CreateMap<RegisterRequest, User>();
-        }
+        CreateMap<RegisterRequest, User>();
+
+        CreateMap<FieldData, Field>();
+
+        CreateMap<CreateFieldData, Field>();
+
+        CreateMap<CreateCollectionRequest, Collection>();
+
+        CreateMap<CreateCollectionRequest, CollectionData>();
+
+        CreateMap<IntValueData, IntValue>();
+
+        CreateMap<StringValueData, StringValue>();
+
+        CreateMap<BoolValueData, BoolValue>();
+
+        CreateMap<DateTimeValueData, DateTimeValue>();
+
+        CreateMap<string, Tag>().ConvertUsing(n => new Tag { Name = n });
+
+        CreateMap<Tag, string>().ConvertUsing(t => t.Name);
+
+        CreateMap<Topic, TopicData>();
+
+        CreateMap<AddItemRequest, Item>();
+
+        CreateMap<Item, CollectionItemData>();
+
+        CreateMap<CreateCommentRequest, Comment>();
+
+        CreateMap<User, CommentAuthorData>();
+
+        CreateMap<Comment, CommentData>();
+
+        CreateMap<Item, SearchItemData>();
+
+        CreateMap<Item, GetItemResponse>();
+
+        CreateMap<Item, LatestItemData>();
+
+        CreateMap<Collection, SearchCollectionData>();
+
+        CreateMap<Collection, LatestCollectionData>();
+
+        CreateMap<User, LatestItemOwnerData>();
     }
 }

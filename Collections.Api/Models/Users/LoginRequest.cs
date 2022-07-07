@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Task4Back.Models.Users
+namespace Collections.Api.Models.Users
 {
     public class LoginRequest
     {

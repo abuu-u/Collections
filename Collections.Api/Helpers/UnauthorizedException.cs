@@ -1,15 +1,19 @@
-namespace Task4Back.Helpers;
+namespace Collections.Api.Helpers;
 
 using System.Globalization;
 
 public class UnauthorizedException : Exception
 {
-    public UnauthorizedException() : base() { }
+    public UnauthorizedException() : base()
+    {
+    }
 
-    public UnauthorizedException(string message) : base(message) { }
+    public UnauthorizedException(string message) : base(message)
+    {
+    }
 
-    public UnauthorizedException(string message, params object[] args)
-        : base(String.Format(CultureInfo.CurrentCulture, message, args))
+    public UnauthorizedException(string message, params object[] args) : base(string.Format(CultureInfo.CurrentCulture,
+        message, args))
     {
     }
 

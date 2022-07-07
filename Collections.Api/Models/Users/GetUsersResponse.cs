@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Users
 {
-    public class GetPageResponse
+    public class GetUsersResponse
     {
         public int PagesCount { get; set; }
 

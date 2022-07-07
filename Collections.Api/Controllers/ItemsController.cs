@@ -8,81 +8,14 @@ namespace Collections.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("CollectionsApi/Collections/{collectionId:int}/[controller]")]
+[Route("CollectionsApi/[controller]")]
 public class ItemsController : ControllerBase
 {
-    private readonly ICollectionService _collectionService;
-
     private readonly IItemService _itemService;
 
-    public ItemsController(ICollectionService collectionService, IItemService itemService)
+    public ItemsController(IItemService itemService)
     {
-        _collectionService = collectionService;
         _itemService = itemService;
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Create(AddItemRequest model, int collectionId)
-    {
-        var user = HttpContext.Items["User"] as User;
-        var owns = await _collectionService.Owns(collectionId, user!);
-
-        if (!owns)
-        {
-            return Unauthorized();
-        }
-
-        await _itemService.Create(model, collectionId);
-
-        return Ok("Item created successfully");
-    }
-
-    [HttpPut]
-    public async Task<IActionResult> Edit(EditItemRequest model, int collectionId)
-    {
-        var user = HttpContext.Items["User"] as User;
-        var owns = await _collectionService.Owns(collectionId, user!);
-
-        if (!owns)
-        {
-            return Unauthorized();
-        }
-
-        await _itemService.Edit(model, collectionId);
-
-        return Ok("Item edited successfully");
-    }
-
-    [HttpDelete("{itemId:int}")]
-    public async Task<IActionResult> Delete(int itemId, int collectionId)
-    {
-        var user = HttpContext.Items["User"] as User;
-        var owns = await _collectionService.Owns(collectionId, user!);
-
-        if (!owns)
-        {
-            return Unauthorized();
-        }
-
-        await _itemService.Delete(itemId);
-
-        return Ok("Item deleted successfully");
-    }
-
-    [HttpDelete]
-    public async Task<IActionResult> Delete(IEnumerable<int> ids, int collectionId)
-    {
-        var user = HttpContext.Items["User"] as User;
-        var owns = await _collectionService.Owns(collectionId, user!);
-
-        if (!owns)
-        {
-            return Unauthorized();
-        }
-
-        await _itemService.Delete(ids);
-
-        return Ok("Items deleted successfully");
     }
 
     [AllowAnonymous]
@@ -90,7 +23,61 @@ public class ItemsController : ControllerBase
     public async Task<IActionResult> Search(string searchString, int page, int count)
     {
         var items = await _itemService.Search(searchString, page, count);
+        return Ok(items);
+    }
 
+    [HttpPost("{itemId:int}")]
+    public async Task<IActionResult> CreateComment(CreateCommentRequest model, int itemId)
+    {
+        var user = HttpContext.Items["User"] as User;
+        var comment = await _itemService.CreateComment(model, itemId, user!.Id);
+        return Ok(comment);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{itemId:int}/comments")]
+    public async Task<IActionResult> GetComments(int itemId)
+    {
+        var comments = await _itemService.GetComments(itemId);
+        return Ok(comments);
+    }
+
+    [HttpPost("{itemId:int}/like")]
+    public async Task<IActionResult> Like(int itemId)
+    {
+        var item = await _itemService.GetById(itemId);
+        if (item is null)
+        {
+            return NotFound(new { message = "Item not found" });
+        }
+
+        var author = HttpContext.Items["User"] as User;
+        await _itemService.Like(item, author!);
+        return Ok(new { message = "Liked successfully" });
+    }
+
+    [HttpPost("{itemId:int}/unlike")]
+    public async Task<IActionResult> UnLike(int itemId)
+    {
+        var author = HttpContext.Items["User"] as User;
+        await _itemService.Unlike(itemId, author!.Id);
+        return Ok(new { message = "Unliked successfully" });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{itemId:int}")]
+    public async Task<IActionResult> Get(int itemId)
+    {
+        var user = HttpContext.Items["User"] as User;
+        var item = await _itemService.Get(itemId, user?.Id);
+        return Ok(item);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("latest")]
+    public async Task<IActionResult> GetLatestItems(int count)
+    {
+        var items = await _itemService.GetLatestItems(count);
         return Ok(items);
     }
 }

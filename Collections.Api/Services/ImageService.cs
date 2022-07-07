@@ -5,20 +5,20 @@ namespace Collections.Api.Services;
 
 public interface IImageService
 {
-    Task<SaveImageResponse> SaveImage(SaveImageRequest model);
+    Task<SaveImageResponse> Upload(SaveImageRequest model);
 }
 
 public class ImageService: IImageService
 {
-    private readonly IImageRepository _ImageRepository;
+    private readonly IImageRepository _imageRepository;
 
-    public ImageService(IImageRepository ImageRepository)
+    public ImageService(IImageRepository imageRepository)
     {
-        _ImageRepository = ImageRepository;
+        _imageRepository = imageRepository;
     }
 
-    public async Task<SaveImageResponse> SaveImage(SaveImageRequest model)
+    public async Task<SaveImageResponse> Upload(SaveImageRequest model)
     {
-        return await _ImageRepository.Upload(model);
+        return await _imageRepository.Upload(model);
     }
 }

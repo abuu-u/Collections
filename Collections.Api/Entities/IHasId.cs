@@ -1,4 +1,4 @@
-namespace Collections.Api.Models.Collections;
+namespace Collections.Api.Entities;
 
 public interface IHasId
 {

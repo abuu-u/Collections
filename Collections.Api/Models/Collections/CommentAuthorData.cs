@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Collections;
 
-public class CommenterData
+public class CommentAuthorData
 {
     public string Name { get; set; }
 }

@@ -1,64 +1,78 @@
 using Microsoft.AspNetCore.Mvc;
-using Task4Back.Authorization;
-using Task4Back.Models.Users;
-using Task4Back.Services;
+using Collections.Api.Authorization;
+using Collections.Api.Models.Users;
+using Collections.Api.Services;
 
-namespace Task4Back.Controllers
+namespace Collections.Api.Controllers;
+
+[Authorize]
+[OnlyAdmin]
+[ApiController]
+[Route("CollectionsApi/[controller]")]
+public class UsersController : ControllerBase
 {
-    [Authorize]
-    [ApiController]
-    [Route("task4/[controller]")]
-    public class UsersController : ControllerBase
+    private readonly IUserService _userService;
+
+    public UsersController(IUserService userService)
     {
-        private readonly IUserService _userService;
+        _userService = userService;
+    }
 
-        public UsersController(IUserService userService)
-        {
-            _userService = userService;
-        }
+    [AllowAnonymous]
+    [HttpPost("login")]
+    public async Task<IActionResult> Authenticate(LoginRequest model)
+    {
+        var response = await _userService.Login(model);
+        return Ok(response);
+    }
 
-        [AllowAnonymous]
-        [HttpPost("login")]
-        public IActionResult Authenticate(LoginRequest model)
-        {
-            AuthenticationResponse response = _userService.Login(model);
-            return Ok(response);
-        }
+    [AllowAnonymous]
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(RegisterRequest model)
+    {
+        var response = await _userService.Register(model);
+        return Ok(response);
+    }
 
-        [AllowAnonymous]
-        [HttpPost("register")]
-        public IActionResult Register(RegisterRequest model)
-        {
-            AuthenticationResponse response = _userService.Register(model);
-            return Ok(response);
-        }
+    [HttpGet]
+    public async Task<IActionResult> GetUsers(int page, int count)
+    {
+        var response = await _userService.GetUsers(page, count);
+        return Ok(response);
+    }
 
-        [HttpGet]
-        public IActionResult GetPage(int page, int count)
-        {
-            GetPageResponse response = _userService.GetPage(page, count);
-            return Ok(response);
-        }
+    [HttpPut("block")]
+    public async Task<IActionResult> Block(List<int> ids)
+    {
+        await _userService.Block(ids);
+        return Ok(new { message = "Users blocked successfully" });
+    }
 
-        [HttpPut("block")]
-        public IActionResult Block(List<int> ids)
-        {
-            _userService.Block(ids);
-            return Ok(new { message = "Users blocked successfully" });
-        }
+    [HttpPut("unblock")]
+    public async Task<IActionResult> Unblock(List<int> ids)
+    {
+        await _userService.Unblock(ids);
+        return Ok(new { message = "Users unblocked successfully" });
+    }
 
-        [HttpPut("unblock")]
-        public IActionResult Unblock(List<int> ids)
-        {
-            _userService.Unblock(ids);
-            return Ok(new { message = "Users unblocked successfully" });
-        }
+    [HttpDelete]
+    public async Task<IActionResult> Delete(List<int> ids)
+    {
+        await _userService.Delete(ids);
+        return Ok(new { message = "Users deleted successfully" });
+    }
 
-        [HttpDelete]
-        public IActionResult Delete(List<int> ids)
-        {
-            _userService.Delete(ids);
-            return Ok(new { message = "Users deleted successfully" });
-        }
+    [HttpPut("promote")]
+    public async Task<IActionResult> PromoteToAdmin(List<int> ids)
+    {
+        await _userService.PromoteToAdmin(ids);
+        return Ok(new { message = "Users promoted successfully" });
+    }
+
+    [HttpPut("demote")]
+    public async Task<IActionResult> DemoteToUser(List<int> ids)
+    {
+        await _userService.DemoteToUser(ids);
+        return Ok(new { message = "Users promoted successfully" });
     }
 }

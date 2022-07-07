@@ -1,8 +1,8 @@
 namespace Collections.Api.Models.Collections;
 
-public class SearchResponse
+public class SearchItemsResponse
 {
-    public List<SearchItemData> Items { get; set; }
+    public int PagesCount { get; set; }
 
-    public List<SearchCollectionData> Collections { get; set; }
+    public List<SearchItemData> Items { get; set; }
 }

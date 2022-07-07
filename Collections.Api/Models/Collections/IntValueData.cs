@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Collections;
 
-public class IntValueData
+public class IntValueData : IHasFieldId
 {
     public int FieldId { get; set; }
     

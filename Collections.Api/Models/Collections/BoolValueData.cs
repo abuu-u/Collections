@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Collections;
 
-public class BoolValueData
+public class BoolValueData : IHasFieldId
 {
     public int FieldId { get; set; }
     

@@ -1,27 +1,31 @@
 using AutoMapper;
-using Task4Back.Authorization;
-using Task4Back.Entities;
-using Task4Back.Helpers;
-using Task4Back.Models.Users;
+using Collections.Api.Authorization;
+using Collections.Api.Entities;
+using Collections.Api.Helpers;
+using Collections.Api.Models.Users;
 using Microsoft.EntityFrameworkCore;
 
-namespace Task4Back.Services
+namespace Collections.Api.Services
 {
     public interface IUserService
     {
-        AuthenticationResponse Login(LoginRequest model);
+        Task<AuthenticationResponse> Login(LoginRequest model);
 
-        GetPageResponse GetPage(int page, int count);
+        Task<GetUsersResponse> GetUsers(int page, int count);
 
-        AuthenticationResponse Register(RegisterRequest model);
+        Task<AuthenticationResponse> Register(RegisterRequest model);
 
-        void Block(List<int> ids);
+        Task Block(IEnumerable<int> ids);
 
-        void Unblock(List<int> ids);
+        Task Unblock(IEnumerable<int> ids);
 
-        void Delete(List<int> ids);
+        Task Delete(IEnumerable<int> ids);
 
-        User GetById(int id);
+        Task PromoteToAdmin(IEnumerable<int> ids);
+
+        Task DemoteToUser(IEnumerable<int> ids);
+
+        Task<User?> GetById(int id);
     }
 
     public class UserService : IUserService
@@ -32,40 +36,31 @@ namespace Task4Back.Services
 
         private readonly IMapper _mapper;
 
-        public UserService(
-            DataContext context,
-            IJwtUtils jwtUtils,
-            IMapper mapper)
+        public UserService(DataContext context, IJwtUtils jwtUtils, IMapper mapper)
         {
             _context = context;
             _jwtUtils = jwtUtils;
             _mapper = mapper;
         }
 
-        public AuthenticationResponse Register(RegisterRequest model)
+        public async Task<AuthenticationResponse> Register(RegisterRequest model)
         {
-            if (_context.Users.Any(x => x.Email == model.Email))
+            if (await _context.Users.AnyAsync(x => x.Email == model.Email))
             {
                 throw new BadHttpRequestException("Email '" + model.Email + "' is already taken");
             }
-
-            User user = _mapper.Map<User>(model);
-
+            var user = _mapper.Map<User>(model);
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
-
-            _ = _context.Users.Add(user);
-            _ = _context.SaveChanges();
-
-            AuthenticationResponse response = _mapper.Map<AuthenticationResponse>(user);
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+            var response = _mapper.Map<AuthenticationResponse>(user);
             response.JwtToken = _jwtUtils.GenerateToken(user);
-
             return response;
         }
 
-        public AuthenticationResponse Login(LoginRequest model)
+        public async Task<AuthenticationResponse> Login(LoginRequest model)
         {
-            User user = _context.Users.SingleOrDefault(x => x.Email == model.Email);
-
+            var user = await _context.Users.SingleOrDefaultAsync(x => x.Email == model.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
             {
                 throw new BadHttpRequestException("Email or password is incorrect");
@@ -75,51 +70,61 @@ namespace Task4Back.Services
             {
                 throw new UnauthorizedException("User is blocked");
             }
-
-            user.LastLogin = DateTime.Now.ToUniversalTime();
-
-            _ = _context.Users.Update(user);
-            _ = _context.SaveChanges();
-
-            AuthenticationResponse response = _mapper.Map<AuthenticationResponse>(user);
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+            var response = _mapper.Map<AuthenticationResponse>(user);
             response.JwtToken = _jwtUtils.GenerateToken(user);
             return response;
         }
 
-        public GetPageResponse GetPage(int page, int count)
+        public async Task<GetUsersResponse> GetUsers(int page, int count)
         {
-            int usersCount = _context.Users.Count();
-            int pageCount = (int)Math.Ceiling(usersCount / (double)count);
-            List<User> users = _context.Users.Skip((page - 1) * count).Take(count).ToList();
-
-            return users.Count == 0
-                ? throw new NotFoundException("No users found")
-                : new GetPageResponse { PagesCount = pageCount, Users = _mapper.Map<List<UserModel>>(users) };
+            var pageCount = (int)Math.Ceiling(await _context.Users.CountAsync() / (double)count);
+            var users = await _context.Users.Skip((page - 1) * count).Take(count).ToListAsync();
+            return new GetUsersResponse { PagesCount = pageCount, Users = _mapper.Map<List<UserData>>(users) };
         }
 
-        public void Block(List<int> ids)
+        public async Task Block(IEnumerable<int> ids)
         {
-            UpdateStatus(ids, false);
+            await UpdateStatus(ids, false);
         }
 
-        public void Unblock(List<int> ids)
+        public async Task Unblock(IEnumerable<int> ids)
         {
-            UpdateStatus(ids, true);
+            await UpdateStatus(ids, true);
         }
 
-        public void Delete(List<int> ids)
+        public async Task Delete(IEnumerable<int> ids)
         {
-            _ = _context.Database.ExecuteSqlRaw($"DELETE FROM \"Users\" WHERE \"Id\" IN ({string.Join(", ", ids)})");
+            _context.Users.RemoveRange(ids.Select(i => new User { Id = i }));
+            await _context.SaveChangesAsync();
         }
 
-        public User GetById(int id)
+        public async Task PromoteToAdmin(IEnumerable<int> ids)
         {
-            return _context.Users.Find(id);
+            await UpdateRole(ids, true);
         }
 
-        private void UpdateStatus(List<int> ids, bool status)
+        public async Task DemoteToUser(IEnumerable<int> ids)
         {
-            _ = _context.Database.ExecuteSqlRaw($"UPDATE \"Users\" SET \"Status\" = {status} WHERE \"Id\" IN ({string.Join(", ", ids)})");
+            await UpdateRole(ids, false);
+        }
+
+        public async Task<User?> GetById(int id)
+        {
+            return await _context.Users.FindAsync(id);
+        }
+
+        private async Task UpdateStatus(IEnumerable<int> ids, bool status)
+        {
+            _context.Users.UpdateRange(ids.Select(i => new User { Id = i, Status = status }));
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task UpdateRole(IEnumerable<int> ids, bool admin)
+        {
+            _context.Users.UpdateRange(ids.Select(i => new User { Id = i, Admin = admin }));
+            await _context.SaveChangesAsync();
         }
     }
 }

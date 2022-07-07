@@ -1,20 +1,20 @@
-namespace Collections.Api.Models.Users;
+using System.ComponentModel.DataAnnotations;
+using Collections.Api.Entities;
+
+namespace Collections.Api.Models.Collections;
 
 public class CreateCollectionRequest
 {
-    public int Id { get; set; }
-
+    [Required]
     public string Name { get; set; }
 
+    [Required]
     public string Description { get; set; }
-    
-    public Topic Topic { get; set; }
-    
-    public string ImgUrl { get; set; }
-    
-    public User Owner { get; set; }
-    
-    public List<Field> Fields { get; set; }
-    
-    public IFormFile? Img { get; set; }
+
+    [Required]
+    public int TopicId { get; set; }
+
+    public List<CreateFieldData> Fields { get; set; }
+
+    public string? ImageUrl { get; set; }
 }

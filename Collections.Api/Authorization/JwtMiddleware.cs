@@ -1,32 +1,28 @@
-using Task4Back.Services;
+using Collections.Api.Services;
 
-namespace Task4Back.Authorization
+namespace Collections.Api.Authorization;
+
+public class JwtMiddleware
 {
-    public class JwtMiddleware
+    private readonly RequestDelegate _next;
+
+    public JwtMiddleware(RequestDelegate next)
     {
-        private readonly RequestDelegate _next;
+        _next = next;
+    }
 
-        public JwtMiddleware(RequestDelegate next)
+    public async Task Invoke(HttpContext context, IUserService userService, IJwtUtils jwtUtils)
+    {
+        var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+        var userId = jwtUtils.ValidateToken(token);
+        if (userId != null)
         {
-            _next = next;
-        }
-
-        public async Task Invoke(HttpContext context, IUserService userService, IJwtUtils jwtUtils)
-        {
-            string token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-            int? userId = jwtUtils.ValidateToken(token);
-
-            if (userId != null)
+            var user = await userService.GetById(userId.Value);
+            if (user?.Status == true)
             {
-                Entities.User user = userService.GetById(userId.Value);
-
-                if (user?.Status == true)
-                {
-                    context.Items["User"] = user;
-                }
+                context.Items["User"] = user;
             }
-
-            await _next(context);
         }
+        await _next(context);
     }
 }

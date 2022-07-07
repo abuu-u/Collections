@@ -1,69 +1,67 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Task4Back.Entities;
+using Collections.Api.Entities;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Task4Back.Authorization
-{
-    public interface IJwtUtils
-    {
-        public string GenerateToken(User user);
+namespace Collections.Api.Authorization;
 
-        public int? ValidateToken(string token);
+public interface IJwtUtils
+{
+    public string GenerateToken(User user);
+
+    public int? ValidateToken(string? token);
+}
+
+public class JwtUtils : IJwtUtils
+{
+    private readonly IConfiguration _configuration;
+
+    public JwtUtils(IConfiguration configuration)
+    {
+        _configuration = configuration;
     }
 
-    public class JwtUtils : IJwtUtils
+    public string GenerateToken(User user)
     {
-        private readonly IConfiguration Configuration;
-
-        public JwtUtils(IConfiguration configuration)
+        JwtSecurityTokenHandler tokenHandler = new();
+        var key = Encoding.ASCII.GetBytes(_configuration["JWT_SECRET"] ?? "d11324d342d34d1324d1324d132d3214d3214d3");
+        SecurityTokenDescriptor tokenDescriptor = new()
         {
-            Configuration = configuration;
+            Subject = new ClaimsIdentity(new[] { new Claim("id", user.Id.ToString()) }),
+            Expires = DateTime.UtcNow.AddDays(7),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
+                SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
+    }
+
+    public int? ValidateToken(string? token)
+    {
+        if (token == null)
+        {
+            return null;
         }
-
-        public string GenerateToken(User user)
+        JwtSecurityTokenHandler tokenHandler = new();
+        var key = Encoding.ASCII.GetBytes(_configuration["JWT_SECRET"] ?? "d11324d342d34d1324d1324d132d3214d3214d3");
+        try
         {
-            JwtSecurityTokenHandler tokenHandler = new();
-            byte[] key = Encoding.ASCII.GetBytes(Configuration["JWT_SECRET"]);
-            SecurityTokenDescriptor tokenDescriptor = new()
-            {
-                Subject = new ClaimsIdentity(new[] { new Claim("id", user.Id.ToString()) }),
-                Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-            SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
-        }
-
-        public int? ValidateToken(string token)
-        {
-            if (token == null)
-            {
-                return null;
-            }
-
-            JwtSecurityTokenHandler tokenHandler = new();
-            byte[] key = Encoding.ASCII.GetBytes(Configuration["JWT_SECRET"]);
-            try
-            {
-                _ = tokenHandler.ValidateToken(token, new TokenValidationParameters
+            tokenHandler.ValidateToken(token,
+                new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
                     ValidateIssuer = false,
                     ValidateAudience = false,
                     ClockSkew = TimeSpan.Zero
-                }, out SecurityToken validatedToken);
-
-                JwtSecurityToken jwtToken = (JwtSecurityToken)validatedToken;
-
-                return int.Parse(jwtToken.Claims.First(x => x.Type == "id").Value);
-            }
-            catch
-            {
-                return null;
-            }
+                }, out var validatedToken);
+            var jwtToken = (JwtSecurityToken)validatedToken;
+            return int.Parse(jwtToken.Claims.First(x => x.Type == "id").Value);
+        }
+        catch
+        {
+            return null;
         }
     }
 }

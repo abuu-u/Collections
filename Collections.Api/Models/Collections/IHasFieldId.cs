@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Collections;
 
-public interface IHasId
+public interface IHasFieldId
 {
-    public int Id { get; set; }
+    public int FieldId { get; set; }
 }

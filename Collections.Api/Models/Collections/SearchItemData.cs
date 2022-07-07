@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Collections;
 
-public class SearchCollectionData
+public class SearchItemData
 {
     public int Id { get; set; }
 

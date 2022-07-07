@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Collections;
 
-public class SaveImgResponse
+public class SaveImageResponse
 {
-    
+    public string ImageUrl { get; set; }
 }

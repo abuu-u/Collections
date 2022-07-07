@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Collections;
 
-public class CollectionResponse
+public class CollectionData
 {
     public int Id { get; set; }
 
@@ -8,9 +8,9 @@ public class CollectionResponse
 
     public string Description { get; set; }
 
-    public string Topic { get; set; }
+    public int TopicId { get; set; }
 
     public List<FieldData> Fields { get; set; }
 
-    public string? ImgUrl { get; set; }
+    public string? ImageUrl { get; set; }
 }

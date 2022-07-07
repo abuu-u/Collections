@@ -10,8 +10,6 @@ namespace Collections.Api.Models.Users
 
         public bool Status { get; set; }
 
-        public DateTime LastLogin { get; set; }
-
-        public DateTime Created { get; set; }
+        public bool Admin { get; set; }
     }
 }

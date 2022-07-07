@@ -1,26 +1,27 @@
-
-using Task4Back.Entities;
+using Collections.Api.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace Task4Back.Authorization
-{
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-    public class AuthorizeAttribute : Attribute, IAuthorizationFilter
-    {
-        public void OnAuthorization(AuthorizationFilterContext context)
-        {
-            bool allowAnonymous = context.ActionDescriptor.EndpointMetadata.OfType<AllowAnonymousAttribute>().Any();
-            if (allowAnonymous)
-            {
-                return;
-            }
+namespace Collections.Api.Authorization;
 
-            User user = (User)context.HttpContext.Items["User"];
-            if (user == null)
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+public class AuthorizeAttribute : Attribute, IAuthorizationFilter
+{
+    public void OnAuthorization(AuthorizationFilterContext context)
+    {
+        var allowAnonymous = context.ActionDescriptor.EndpointMetadata.OfType<AllowAnonymousAttribute>().Any();
+        var onlyAdmin = context.ActionDescriptor.EndpointMetadata.OfType<OnlyAdminAttribute>().Any();
+        if (allowAnonymous)
+        {
+            return;
+        }
+        var user = (User?)context.HttpContext.Items["User"];
+        if (user == null || (onlyAdmin && !user.Admin))
+        {
+            context.Result = new JsonResult(new { message = "Unauthorized" })
             {
-                context.Result = new JsonResult(new { message = "Unauthorized" }) { StatusCode = StatusCodes.Status401Unauthorized };
-            }
+                StatusCode = StatusCodes.Status401Unauthorized
+            };
         }
     }
 }

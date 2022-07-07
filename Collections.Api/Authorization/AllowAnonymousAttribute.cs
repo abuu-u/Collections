@@ -1,6 +1,6 @@
-namespace Task4Back.Authorization
+namespace Collections.Api.Authorization;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowAnonymousAttribute : Attribute
 {
-    [AttributeUsage(AttributeTargets.Method)]
-    public class AllowAnonymousAttribute : Attribute
-    { }
 }

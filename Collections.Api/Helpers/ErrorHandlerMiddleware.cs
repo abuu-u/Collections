@@ -1,40 +1,45 @@
-
 using System.Net;
 using System.Text.Json;
 
-namespace Task4Back.Helpers
+namespace Collections.Api.Helpers;
+
+public class ErrorHandlerMiddleware
 {
-    public class ErrorHandlerMiddleware
+    private readonly RequestDelegate _next;
+
+    private readonly ILogger<ErrorHandlerMiddleware> _logger;
+
+    public ErrorHandlerMiddleware(RequestDelegate next, ILogger<ErrorHandlerMiddleware> logger)
     {
-        private readonly RequestDelegate _next;
+        _next = next;
+        _logger = logger;
+    }
 
-        public ErrorHandlerMiddleware(RequestDelegate next)
+    public async Task Invoke(HttpContext context)
+    {
+        try
         {
-            _next = next;
+            await _next(context);
         }
-
-        public async Task Invoke(HttpContext context)
+        catch (Exception error)
         {
-            try
+            _logger.LogError("{ErrorSource} - {ErrorMessage} - {ErrorStackTrace} - {TargetSiteName}", error.Source,
+                error.Message, error.StackTrace, error.TargetSite?.Name);
+            var response = context.Response;
+            const string internalErrorMessage = "An internal server error has occured.";
+            response.ContentType = "application/json";
+            response.StatusCode = error switch
             {
-                await _next(context);
-            }
-            catch (Exception error)
-            {
-                HttpResponse response = context.Response;
-                response.ContentType = "application/json";
-
-                response.StatusCode = error switch
-                {
-                    BadHttpRequestException => (int)HttpStatusCode.BadRequest,
-                    UnauthorizedException => (int)HttpStatusCode.Unauthorized,
-                    NotFoundException => (int)HttpStatusCode.NotFound,
-                    _ => (int)HttpStatusCode.InternalServerError,
-                };
-
-                string result = JsonSerializer.Serialize(new { message = error?.Message });
-                await response.WriteAsync(result);
-            }
+                BadHttpRequestException => (int)HttpStatusCode.BadRequest,
+                UnauthorizedException => (int)HttpStatusCode.Unauthorized,
+                NotFoundException => (int)HttpStatusCode.NotFound,
+                _ => (int)HttpStatusCode.InternalServerError,
+            };
+            var errorMessage = response.StatusCode == (int)HttpStatusCode.InternalServerError
+                ? internalErrorMessage
+                : error?.Message;
+            var result = JsonSerializer.Serialize(new { message = errorMessage });
+            await response.WriteAsync(result);
         }
     }
 }

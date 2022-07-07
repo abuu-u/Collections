@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Collections;
 
-public class DateTimeValueData
+public class DateTimeValueData : IHasFieldId
 {
     public int FieldId { get; set; }
     
