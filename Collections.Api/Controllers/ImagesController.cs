@@ -7,7 +7,7 @@ namespace Collections.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("CollectionsApi/[controller]")]
+[Route("collections/[controller]")]
 public class ImagesController : ControllerBase
 {
     private readonly IImageService _imageService;

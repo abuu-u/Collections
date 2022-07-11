@@ -9,7 +9,7 @@ namespace Collections.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("CollectionsApi/[controller]")]
+[Route("collections/[controller]")]
 public class CollectionsController : ControllerBase
 {
     private readonly ICollectionService _collectionService;

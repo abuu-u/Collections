@@ -8,7 +8,7 @@ namespace Collections.Api.Controllers;
 [Authorize]
 [OnlyAdmin]
 [ApiController]
-[Route("CollectionsApi/[controller]")]
+[Route("collections/[controller]")]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

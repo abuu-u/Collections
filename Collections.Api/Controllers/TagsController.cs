@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Collections.Api.Controllers;
 
 [ApiController]
-[Route("CollectionsApi/[controller]")]
+[Route("collections/[controller]")]
 public class TagsController : ControllerBase
 {
     private readonly IItemService _itemService;

@@ -8,7 +8,7 @@ namespace Collections.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("CollectionsApi/Collections/{collectionId:int}/Items")]
+[Route("collections/Collections/{collectionId:int}/Items")]
 public class CollectionItemsController : ControllerBase
 {
     private readonly ICollectionService _collectionService;
