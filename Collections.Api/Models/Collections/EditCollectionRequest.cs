@@ -13,7 +13,7 @@ public class EditCollectionRequest
 
     public int? TopicId { get; set; }
 
-    public List<FieldData> Fields { get; set; }
+    public List<EditCollectionFieldData> Fields { get; set; }
 
     public string? ImageUrl { get; set; }
 }

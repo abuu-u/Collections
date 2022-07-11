@@ -19,6 +19,8 @@ public class Item
 
     public List<Like> Likes { get; set; }
 
+    public int CollectionId { get; set; }
+
     public Collection Collection { get; set; }
 
     public List<IntValue> IntValues { get; set; }

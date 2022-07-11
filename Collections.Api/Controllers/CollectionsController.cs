@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Collections.Api.Authorization;
 using Collections.Api.Entities;
 using Collections.Api.Models.Collections;
@@ -26,11 +27,19 @@ public class CollectionsController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("{collectionId:int}")]
+    public async Task<IActionResult> Get(int collectionId)
+    {
+        var user = HttpContext.Items["User"] as User;
+        var response = await _collectionService.Get(collectionId, user!.Id);
+        return Ok(response);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(CreateCollectionRequest model)
     {
         var user = HttpContext.Items["User"] as User;
-        await _collectionService.Create(model, user!.Id);
+        await _collectionService.Create(model, user!);
         return Ok(new { message = "Collection created successfully" });
     }
 
@@ -43,7 +52,6 @@ public class CollectionsController : ControllerBase
         {
             return Unauthorized(new { message = "Unauthorized" });
         }
-
         await _collectionService.Edit(model);
         return Ok(new { message = "Collection edited successfully" });
     }
@@ -57,16 +65,16 @@ public class CollectionsController : ControllerBase
         {
             return Unauthorized(new { message = "Unauthorized" });
         }
-
         await _collectionService.Delete(collectionId);
         return Ok(new { message = "Collection deleted successfully" });
     }
 
     [AllowAnonymous]
-    [HttpGet("{collectionId:int}")]
+    [HttpGet("{collectionId:int}/items")]
     public async Task<IActionResult> GetItems([FromQuery] GetCollectionItemsRequest model, int collectionId)
     {
-        var items = await _collectionService.GetItems(model, collectionId);
+        var owns = HttpContext.Items["User"] is User user && await _collectionService.Owns(collectionId, user);
+        var items = await _collectionService.GetItems(model, collectionId, owns);
         return Ok(items);
     }
 
@@ -90,7 +98,7 @@ public class CollectionsController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("search")]
-    public async Task<IActionResult> Search(string searchString, int page, int count)
+    public async Task<IActionResult> Search(string? searchString, int page, int count)
     {
         var collections = await _collectionService.Search(searchString, page, count);
         return Ok(collections);

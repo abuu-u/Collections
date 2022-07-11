@@ -13,7 +13,7 @@ using NpgsqlTypes;
 namespace Collections.Api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20220707070928_InitialCreate")]
+    [Migration("20220711183016_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -446,7 +446,7 @@ namespace Collections.Api.Migrations
             modelBuilder.Entity("Collections.Api.Entities.Collection", b =>
                 {
                     b.HasOne("Collections.Api.Entities.User", "Owner")
-                        .WithMany()
+                        .WithMany("Collections")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -612,6 +612,11 @@ namespace Collections.Api.Migrations
                     b.Navigation("StringValues");
 
                     b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("Collections.Api.Entities.User", b =>
+                {
+                    b.Navigation("Collections");
                 });
 #pragma warning restore 612, 618
         }

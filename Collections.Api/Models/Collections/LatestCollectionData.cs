@@ -4,5 +4,5 @@ public class LatestCollectionData
 {
     public string Name { get; set; }
 
-    public LatestItemOwnerData OwnerData { get; set; }
+    public LatestItemOwnerData Owner { get; set; }
 }

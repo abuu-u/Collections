@@ -22,7 +22,7 @@ public class TagsController : ControllerBase
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> SearchTags(string str, int count)
+    public async Task<IActionResult> SearchTags(string? str, int count)
     {
         var tags = await _itemService.SearchTags(str, count);
         return Ok(tags);

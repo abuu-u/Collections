@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Collections.Api.Entities;
 
 public class User
@@ -11,6 +13,9 @@ public class User
     public bool Status { get; set; }
 
     public bool Admin { get; set; }
+    
+    [InverseProperty(nameof(Collection.Owner))]
+    public List<Collection> Collections { get; set; } 
 
     public string PasswordHash { get; set; }
 }

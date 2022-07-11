@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Npgsql;
 
 namespace Collections.Api.Helpers;
 
@@ -23,8 +24,7 @@ public class ErrorHandlerMiddleware
         }
         catch (Exception error)
         {
-            _logger.LogError("{ErrorSource} - {ErrorMessage} - {ErrorStackTrace} - {TargetSiteName}", error.Source,
-                error.Message, error.StackTrace, error.TargetSite?.Name);
+            _logger.LogError("{Error}",error.ToString());
             var response = context.Response;
             const string internalErrorMessage = "An internal server error has occured.";
             response.ContentType = "application/json";

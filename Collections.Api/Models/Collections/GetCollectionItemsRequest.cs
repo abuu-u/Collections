@@ -6,7 +6,7 @@ public class GetCollectionItemsRequest
 {
     public int? SortFieldId { get; set; }
 
-    public FieldType? SortFieldType { get; set; }
+    public string? SortBy { get; set; }
 
     public string? FilterName { get; set; }
 

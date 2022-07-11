@@ -17,6 +17,20 @@ public class AutoMapperProfile : Profile
 
         CreateMap<FieldData, Field>();
 
+        CreateMap<Field, FieldData>();
+
+        CreateMap<EditCollectionFieldData, Field>();
+        
+        CreateMap<EditCollectionFieldData, FieldData>();
+
+        CreateMap<EditCollectionRequest, Collection>();
+
+        CreateMap<EditCollectionRequest, CollectionData>();
+
+        CreateMap<Collection, CollectionData>();
+
+        CreateMap<CollectionData, Collection>();
+
         CreateMap<CreateFieldData, Field>();
 
         CreateMap<CreateCollectionRequest, Collection>();
@@ -31,6 +45,14 @@ public class AutoMapperProfile : Profile
 
         CreateMap<DateTimeValueData, DateTimeValue>();
 
+        CreateMap<IntValue, IntValueData>();
+
+        CreateMap<StringValue, StringValueData>();
+
+        CreateMap<BoolValue, BoolValueData>();
+
+        CreateMap<DateTimeValue, DateTimeValueData>();
+
         CreateMap<string, Tag>().ConvertUsing(n => new Tag { Name = n });
 
         CreateMap<Tag, string>().ConvertUsing(t => t.Name);
@@ -39,9 +61,13 @@ public class AutoMapperProfile : Profile
 
         CreateMap<AddItemRequest, Item>();
 
+        CreateMap<EditItemRequest, Item>();
+
         CreateMap<Item, CollectionItemData>();
 
         CreateMap<CreateCommentRequest, Comment>();
+
+        CreateMap<Comment, CreateCommentResponse>();
 
         CreateMap<User, CommentAuthorData>();
 
@@ -51,11 +77,15 @@ public class AutoMapperProfile : Profile
 
         CreateMap<Item, GetItemResponse>();
 
+        CreateMap<Item, GetItemForEditingResponse>();
+
         CreateMap<Item, LatestItemData>();
 
         CreateMap<Collection, SearchCollectionData>();
 
         CreateMap<Collection, LatestCollectionData>();
+
+        CreateMap<Collection, GetCollectionResponse>();
 
         CreateMap<User, LatestItemOwnerData>();
     }

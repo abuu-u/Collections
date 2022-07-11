@@ -20,7 +20,7 @@ public class ItemsController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("search")]
-    public async Task<IActionResult> Search(string searchString, int page, int count)
+    public async Task<IActionResult> Search(string? searchString, int page, int count)
     {
         var items = await _itemService.Search(searchString, page, count);
         return Ok(items);
@@ -30,7 +30,7 @@ public class ItemsController : ControllerBase
     public async Task<IActionResult> CreateComment(CreateCommentRequest model, int itemId)
     {
         var user = HttpContext.Items["User"] as User;
-        var comment = await _itemService.CreateComment(model, itemId, user!.Id);
+        var comment = await _itemService.CreateComment(model, itemId, user!);
         return Ok(comment);
     }
 
@@ -45,14 +45,8 @@ public class ItemsController : ControllerBase
     [HttpPost("{itemId:int}/like")]
     public async Task<IActionResult> Like(int itemId)
     {
-        var item = await _itemService.GetById(itemId);
-        if (item is null)
-        {
-            return NotFound(new { message = "Item not found" });
-        }
-
         var author = HttpContext.Items["User"] as User;
-        await _itemService.Like(item, author!);
+        await _itemService.Like(itemId, author!);
         return Ok(new { message = "Liked successfully" });
     }
 
@@ -70,6 +64,14 @@ public class ItemsController : ControllerBase
     {
         var user = HttpContext.Items["User"] as User;
         var item = await _itemService.Get(itemId, user?.Id);
+        return Ok(item);
+    }
+
+    [HttpGet("{itemId:int}/for-edit")]
+    public async Task<IActionResult> GetItemForEditing(int itemId)
+    {
+        var user = HttpContext.Items["User"] as User;
+        var item = await _itemService.GetItemForEditing(itemId, user?.Id);
         return Ok(item);
     }
 

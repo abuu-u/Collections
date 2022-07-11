@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AutoMapper;
 using Collections.Api.Entities;
 using Collections.Api.Helpers;
@@ -8,7 +9,7 @@ namespace Collections.Api.Services;
 
 public interface ICollectionService
 {
-    Task Create(CreateCollectionRequest model, int ownerId);
+    Task Create(CreateCollectionRequest model, User owner);
 
     Task<CollectionData> Edit(EditCollectionRequest model);
 
@@ -26,13 +27,15 @@ public interface ICollectionService
 
     Task<List<TopicData>> GetTopics();
 
-    Task<GetCollectionItemsResponse> GetItems(GetCollectionItemsRequest model, int collectionId);
+    Task<GetCollectionItemsResponse> GetItems(GetCollectionItemsRequest model, int collectionId, bool isOwner);
 
-    Task<SearchCollectionsResponse> Search(string searchString, int page, int count);
+    Task<SearchCollectionsResponse> Search(string? searchString, int page, int count);
 
     Task<GetTagsResponse> GetCollectionTags(int collectionId);
 
     Task<GetLargestCollectionsResponse> GetLargestCollections(int count);
+
+    Task<GetCollectionResponse> Get(int id, int userId);
 }
 
 public class CollectionService : ICollectionService
@@ -47,20 +50,28 @@ public class CollectionService : ICollectionService
         _mapper = mapper;
     }
 
-    public async Task Create(CreateCollectionRequest model, int ownerId)
+    public async Task Create(CreateCollectionRequest model, User owner)
     {
+        if (model.Fields.Count == 0)
+        {
+            throw new BadHttpRequestException("Collection must have fields");
+        }
         if (model.Fields.DistinctBy(f => f.Name).Count() != model.Fields.Count)
         {
             throw new BadHttpRequestException("Field names should be unique");
         }
         var collectionToAdd = _mapper.Map<Collection>(model);
-        collectionToAdd.Owner.Id = ownerId;
+        collectionToAdd.Owner = owner;
         await _context.Collections.AddAsync(collectionToAdd);
         await _context.SaveChangesAsync();
     }
 
     public async Task<CollectionData> Edit(EditCollectionRequest model)
     {
+        if (model.Fields.Count == 0)
+        {
+            throw new BadHttpRequestException("Collection must have fields");
+        }
         var collection = await GetById(model.Id);
         if (collection is null)
         {
@@ -79,6 +90,7 @@ public class CollectionService : ICollectionService
             throw new NotFoundException("Collection not found");
         }
         _context.Collections.Remove(collection);
+        await _context.SaveChangesAsync();
     }
 
     public async Task<GetAllCollectionResponse> GetMyCollections(int page, int count, int ownerId)
@@ -97,6 +109,11 @@ public class CollectionService : ICollectionService
 
     public async Task<GetFieldsResponse> GetFields(int collectionId)
     {
+        var collection = await GetById(collectionId);
+        if (collection is null)
+        {
+            throw new NotFoundException("Collection couldn't be found");
+        }
         var fields = await _context.Fields.Where(f => f.Collection.Id == collectionId).ToListAsync();
         return new GetFieldsResponse { Fields = _mapper.Map<List<FieldData>>(fields) };
     }
@@ -107,40 +124,71 @@ public class CollectionService : ICollectionService
         return _mapper.Map<List<TopicData>>(topics);
     }
 
-    public async Task<GetCollectionItemsResponse> GetItems(GetCollectionItemsRequest model, int collectionId)
+    public async Task<GetCollectionItemsResponse> GetItems(GetCollectionItemsRequest model,
+        int collectionId,
+        bool isOwner)
     {
         var itemsQuery = _context.Items.Include(i => i.StringValues)
             .Include(i => i.DateTimeValues)
-            .Where(i => i.Collection.Id == collectionId &&
-                        (model.FilterName == null || i.Name.Contains(model.FilterName)) && (model.FilterTags == null ||
-                            i.Tags.Any(t => model.FilterTags.Contains(t.Name))));
-        var field = await _context.Fields.FirstOrDefaultAsync(f =>
-            f.CollectionId == collectionId && f.Id == model.SortFieldId);
-        if (field is null)
+            .Where(i => i.Collection.Id == collectionId);
+        if (model.FilterName is not null)
         {
-            throw new NotFoundException("Field not found");
+            itemsQuery = itemsQuery.Where(i => i.Name.Contains(model.FilterName));
         }
-        var itemsOrderedQuery = model.SortFieldId < 0
-            ? model.SortFieldId switch
+        if (model.FilterTags is not null)
+        {
+            itemsQuery = itemsQuery.Where(i => i.Tags.Any(t => model.FilterTags.Contains(t.Name)));
+        }
+        if (model.SortFieldId is not null)
+        {
+            if (model.SortBy is not ("desc" or "asc" or null))
             {
-                (int)FixedFields.Name => itemsQuery.OrderBy(i => i.Name),
-                _ => itemsQuery
+                throw new BadHttpRequestException("SortBy value should be \"asc\" or \"desc\" or empty");
             }
-            : model.SortFieldType switch
+            var field = await _context.Fields.FirstOrDefaultAsync(f =>
+                f.CollectionId == collectionId && f.Id == model.SortFieldId &&
+                (f.FieldType == FieldType.String || f.FieldType == FieldType.DateTime));
+            if (field is null && model.SortFieldId > 0)
             {
-                FieldType.Int => itemsQuery.OrderBy(i => i.IntValues.First(v => v.FieldId == model.SortFieldId).Value),
-                FieldType.Bool => itemsQuery.OrderBy(i =>
-                    i.BoolValues.First(v => v.FieldId == model.SortFieldId).Value),
-                FieldType.String or FieldType.MultiLineString => itemsQuery.OrderBy(i =>
-                    i.StringValues.First(v => v.FieldId == model.SortFieldId).Value),
-                FieldType.DateTime => itemsQuery.OrderBy(i =>
-                    i.DateTimeValues.First(v => v.FieldId == model.SortFieldId).Value),
-                _ => itemsQuery
+                throw new NotFoundException("Field not found");
+            }
+            itemsQuery = model.SortBy switch
+            {
+                "desc" => model.SortFieldId < 0
+                    ? model.SortFieldId switch
+                    {
+                        (int)FixedFields.Name => itemsQuery.OrderByDescending(i => i.Name),
+                        _ => itemsQuery
+                    }
+                    : field?.FieldType switch
+                    {
+                        FieldType.DateTime => itemsQuery.OrderByDescending(i =>
+                            i.DateTimeValues.First(v => v.FieldId == model.SortFieldId).Value),
+                        FieldType.String or FieldType.MultiLineString => itemsQuery.OrderByDescending(i =>
+                            i.StringValues.First(v => v.FieldId == model.SortFieldId).Value),
+                        _ => itemsQuery
+                    },
+                _ => model.SortFieldId < 0
+                    ? model.SortFieldId switch
+                    {
+                        (int)FixedFields.Name => itemsQuery.OrderBy(i => i.Name),
+                        _ => itemsQuery
+                    }
+                    : field?.FieldType switch
+                    {
+                        FieldType.DateTime => itemsQuery.OrderBy(i =>
+                            i.DateTimeValues.First(v => v.FieldId == model.SortFieldId).Value),
+                        FieldType.String or FieldType.MultiLineString => itemsQuery.OrderBy(i =>
+                            i.StringValues.First(v => v.FieldId == model.SortFieldId).Value),
+                        _ => itemsQuery
+                    }
             };
-        var items = await itemsOrderedQuery.ToListAsync();
+        }
+        var items = await itemsQuery.ToListAsync();
         return new GetCollectionItemsResponse
         {
-            Items = _mapper.Map<List<CollectionItemData>>(items.ToList())
+            IsOwner = isOwner,
+            Items = _mapper.Map<List<CollectionItemData>>(items)
         };
     }
 
@@ -150,13 +198,28 @@ public class CollectionService : ICollectionService
         return new GetLargestCollectionsResponse { Collections = _mapper.Map<List<CollectionData>>(collections) };
     }
 
-    public async Task<SearchCollectionsResponse> Search(string searchString, int page, int count)
+    public async Task<GetCollectionResponse> Get(int id, int userId)
+    {
+        var collection = await _context.Collections.Include(c => c.Fields)
+            .FirstOrDefaultAsync(c => c.Id == id && c.Owner.Id == userId);
+        if (collection is null)
+        {
+            throw new NotFoundException("User collection with this id not found");
+        }
+        return _mapper.Map<GetCollectionResponse>(collection);
+    }
+
+    public async Task<SearchCollectionsResponse> Search(string? searchString, int page, int count)
     {
         var pageCount = (int)Math.Ceiling(await _context.Collections.CountAsync() / (double)count);
-        var collections = await _context.Collections.Where(i => i.SimpleSearchVector.Matches(searchString))
+        var collectionsQuery =  _context.Collections
             .Skip((page - 1) * count)
-            .Take(count)
-            .ToListAsync();
+            .Take(count);
+        if (searchString is not null)
+        {
+            collectionsQuery = collectionsQuery.Where(i => i.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString)));
+        }
+        var collections = await collectionsQuery.ToListAsync();
         return new SearchCollectionsResponse
         {
             PagesCount = pageCount, Collections = _mapper.Map<List<SearchCollectionData>>(collections)
@@ -173,7 +236,7 @@ public class CollectionService : ICollectionService
 
     public async Task<Collection?> GetById(int id)
     {
-        return await _context.Collections.FindAsync(id);
+        return await _context.Collections.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task<bool> Owns(int collectionId, User user)

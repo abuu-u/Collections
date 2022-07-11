@@ -22,7 +22,9 @@ public class DataContext : DbContext
         var username = _configuration["DB_USERNAME"] ?? "pg";
         var password = _configuration["DB_PASSWORD"] ?? "12345678";
 
-        options.UseNpgsql($"Host={host}; Port={port}; Database={database}; Username={username}; Password={password}");
+        options.UseNpgsql(
+            $"Host={host}; Port={port}; Database={database}; Username={username}; Password={password}; Include Error Detail=true");
+        options.EnableSensitiveDataLogging();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

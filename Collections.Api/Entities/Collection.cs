@@ -17,6 +17,10 @@ public class Collection
 
     public string? ImageUrl { get; set; }
 
+    public int OwnerId { get; set; }
+    
+    [ForeignKey(nameof(OwnerId))]
+    [InverseProperty(nameof(User.Collections))]
     public User Owner { get; set; }
 
     public List<Field> Fields { get; set; }
