@@ -127,7 +127,6 @@ public class ItemService : IItemService
         {
             throw new NotFoundException("Item not found");
         }
-
         var fields = await _collectionService.GetFields(item.CollectionId);
         var like = await _context.Likes.FirstOrDefaultAsync(l => l.Author.Id == userId && l.Item.Id == itemId);
         var likesCount = await _context.Likes.Where(l => l.Item.Id == itemId).CountAsync();
@@ -151,7 +150,6 @@ public class ItemService : IItemService
         {
             throw new NotFoundException("Item not found");
         }
-
         var fields = (await _context.Collections.Include(c => c.Fields)
             .FirstOrDefaultAsync(c => c.Id == item.CollectionId))!.Fields;
         var response = _mapper.Map<GetItemForEditingResponse>(item);
@@ -221,7 +219,7 @@ public class ItemService : IItemService
         var comments = await _context.Comments.Include(c => c.Author)
             .Where(c => c.Item.Id == itemId)
             .OrderBy(c => c.Id)
-            .ToListAsync(); 
+            .ToListAsync();
         return new GetCommentsResponse
         {
             Comments = _mapper.Map<List<CommentData>>(comments)
@@ -264,6 +262,8 @@ public class ItemService : IItemService
                 i.StringValues.Any(s =>
                     s.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString))) ||
                 i.Tags.Any(s => s.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString))) ||
+                i.Collection.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString)) ||
+                i.Collection.Fields.Any(f => f.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString))) ||
                 i.Comments.Any(c => c.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString))));
         }
         var items = await itemsQuery.ToListAsync();

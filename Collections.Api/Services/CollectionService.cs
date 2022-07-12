@@ -212,12 +212,19 @@ public class CollectionService : ICollectionService
     public async Task<SearchCollectionsResponse> Search(string? searchString, int page, int count)
     {
         var pageCount = (int)Math.Ceiling(await _context.Collections.CountAsync() / (double)count);
-        var collectionsQuery =  _context.Collections
+        var collectionsQuery = _context.Collections
             .Skip((page - 1) * count)
             .Take(count);
         if (searchString is not null)
         {
-            collectionsQuery = collectionsQuery.Where(i => i.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString)));
+            collectionsQuery = collectionsQuery.Where(i =>
+                i.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString)) ||
+                i.Fields.Any(f => f.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString))) ||
+                i.Items.Any(i =>
+                    i.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString)) ||
+                    i.StringValues.Any(s => s.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString))) ||
+                    i.Tags.Any(t => t.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString))) ||
+                    i.Comments.Any(c => c.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString)))));
         }
         var collections = await collectionsQuery.ToListAsync();
         return new SearchCollectionsResponse
