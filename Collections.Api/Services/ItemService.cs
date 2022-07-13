@@ -79,7 +79,7 @@ public class ItemService : IItemService
 
     public async Task Edit(EditItemRequest model, int collectionId)
     {
-        var item = await _context.Items.FirstOrDefaultAsync(i => i.Id == model.Id);
+        var item = await GetById(model.Id);
         if (item is null)
         {
             throw new NotFoundException("Item not found");
@@ -91,10 +91,13 @@ public class ItemService : IItemService
         }
         item = _mapper.Map<Item>(model);
         item.CollectionId = collectionId;
-        _context.IntValues.UpdateRange(_mapper.Map<List<IntValue>>(model.IntFields));
-        _context.BoolValues.UpdateRange(_mapper.Map<List<BoolValue>>(model.BoolFields));
-        _context.StringValues.UpdateRange(_mapper.Map<List<StringValue>>(model.StringFields));
-        _context.DateTimeValues.UpdateRange(_mapper.Map<List<DateTimeValue>>(model.DateTimeFields));
+        _context.Tags.RemoveRange(_context.Tags.Where(t => t.ItemId == item.Id));
+        item.Tags = _mapper.Map<List<Tag>>(model.Tags);
+        item.IntValues = _mapper.Map<List<IntValue>>(model.IntFields);
+        item.BoolValues = _mapper.Map<List<BoolValue>>(model.BoolFields);
+        item.StringValues = _mapper.Map<List<StringValue>>(model.StringFields);
+        item.DateTimeValues = _mapper.Map<List<DateTimeValue>>(model.DateTimeFields);
+        _context.Items.Update(item);
         await _context.SaveChangesAsync();
     }
 
