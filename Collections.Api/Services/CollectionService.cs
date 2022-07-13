@@ -35,7 +35,7 @@ public interface ICollectionService
 
     Task<GetLargestCollectionsResponse> GetLargestCollections(int count);
 
-    Task<GetCollectionResponse> Get(int id, int userId);
+    Task<GetCollectionResponse> Get(int id);
 }
 
 public class CollectionService : ICollectionService
@@ -77,7 +77,9 @@ public class CollectionService : ICollectionService
         {
             throw new NotFoundException("Collection not found");
         }
-        _context.Collections.Update(_mapper.Map<Collection>(model));
+        var collectionToUpdate = _mapper.Map<Collection>(model);
+        collectionToUpdate.OwnerId = collection.OwnerId;
+        _context.Collections.Update(collectionToUpdate);
         await _context.SaveChangesAsync();
         return _mapper.Map<CollectionData>(model);
     }
@@ -198,10 +200,10 @@ public class CollectionService : ICollectionService
         return new GetLargestCollectionsResponse { Collections = _mapper.Map<List<CollectionData>>(collections) };
     }
 
-    public async Task<GetCollectionResponse> Get(int id, int userId)
+    public async Task<GetCollectionResponse> Get(int id)
     {
         var collection = await _context.Collections.Include(c => c.Fields)
-            .FirstOrDefaultAsync(c => c.Id == id && c.Owner.Id == userId);
+            .FirstOrDefaultAsync(c => c.Id == id);
         if (collection is null)
         {
             throw new NotFoundException("User collection with this id not found");

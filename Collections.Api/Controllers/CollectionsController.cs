@@ -31,7 +31,17 @@ public class CollectionsController : ControllerBase
     public async Task<IActionResult> Get(int collectionId)
     {
         var user = HttpContext.Items["User"] as User;
-        var response = await _collectionService.Get(collectionId, user!.Id);
+        var collection = await _collectionService.GetById(collectionId);
+        if (collection is null)
+        {
+            return NotFound(new { message = "User collection with this id not found" });
+        }
+        var owns = await _collectionService.Owns(collection.Id, user!);
+        if (!owns)
+        {
+            return NotFound(new { message = "User collection with this id not found" });
+        }
+        var response = await _collectionService.Get(collectionId);
         return Ok(response);
     }
 
