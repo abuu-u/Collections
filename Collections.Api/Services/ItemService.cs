@@ -79,7 +79,7 @@ public class ItemService : IItemService
 
     public async Task Edit(EditItemRequest model, int collectionId)
     {
-        var item = await GetById(model.Id);
+        var item = await _context.Items.FirstOrDefaultAsync(i => i.Id == model.Id);
         if (item is null)
         {
             throw new NotFoundException("Item not found");
@@ -89,14 +89,12 @@ public class ItemService : IItemService
         {
             throw new BadHttpRequestException("Item's custom fields structure doesn't match collection");
         }
-
-        var itemToUpdate = _mapper.Map<Item>(model);
-        itemToUpdate.CollectionId = collectionId;
-        itemToUpdate.IntValues = _mapper.Map<List<IntValue>>(model.IntFields);
-        itemToUpdate.BoolValues = _mapper.Map<List<BoolValue>>(model.BoolFields);
-        itemToUpdate.StringValues = _mapper.Map<List<StringValue>>(model.StringFields);
-        itemToUpdate.DateTimeValues = _mapper.Map<List<DateTimeValue>>(model.DateTimeFields);
-        _context.Items.Update(itemToUpdate);
+        item = _mapper.Map<Item>(model);
+        item.CollectionId = collectionId;
+        _context.IntValues.UpdateRange(_mapper.Map<List<IntValue>>(model.IntFields));
+        _context.BoolValues.UpdateRange(_mapper.Map<List<BoolValue>>(model.BoolFields));
+        _context.StringValues.UpdateRange(_mapper.Map<List<StringValue>>(model.StringFields));
+        _context.DateTimeValues.UpdateRange(_mapper.Map<List<DateTimeValue>>(model.DateTimeFields));
         await _context.SaveChangesAsync();
     }
 
@@ -168,19 +166,28 @@ public class ItemService : IItemService
             .AsSplitQuery()
             .Take(count)
             .ToListAsync();
-        return new GetLatestItemsResponse { Items = _mapper.Map<List<LatestItemData>>(items) };
+        return new GetLatestItemsResponse
+        {
+            Items = _mapper.Map<List<LatestItemData>>(items)
+        };
     }
 
     public async Task<GetTagsResponse> GetMostUsedTags(int count)
     {
         var tags = await _context.Tags
             .GroupBy(t => t.Name)
-            .Select(n => new { Name = n.Key, Count = n.Count() })
+            .Select(n => new
+            {
+                Name = n.Key, Count = n.Count()
+            })
             .OrderByDescending(n => n.Count)
             .Select(n => n.Name)
             .Take(count)
             .ToListAsync();
-        return new GetTagsResponse { Tags = tags };
+        return new GetTagsResponse
+        {
+            Tags = tags
+        };
     }
 
     public async Task<GetTagsResponse> SearchTags(string? str, int count)
@@ -190,12 +197,18 @@ public class ItemService : IItemService
             .Where(t => t.Contains(str ?? ""))
             .Take(count)
             .ToListAsync();
-        return new GetTagsResponse { Tags = tags };
+        return new GetTagsResponse
+        {
+            Tags = tags
+        };
     }
 
     public async Task Delete(IEnumerable<int> ids)
     {
-        _context.Items.RemoveRange(ids.Select(i => new Item { Id = i }));
+        _context.Items.RemoveRange(ids.Select(i => new Item
+        {
+            Id = i
+        }));
         await _context.SaveChangesAsync();
     }
 
@@ -211,7 +224,10 @@ public class ItemService : IItemService
         comment.AuthorId = author.Id;
         await _context.Comments.AddAsync(comment);
         await _context.SaveChangesAsync();
-        return new CreateCommentResponse { Comment = _mapper.Map<CommentData>(comment) };
+        return new CreateCommentResponse
+        {
+            Comment = _mapper.Map<CommentData>(comment)
+        };
     }
 
     public async Task<GetCommentsResponse> GetComments(int itemId)
@@ -233,7 +249,10 @@ public class ItemService : IItemService
         {
             throw new NotFoundException("Item not found");
         }
-        await _context.Likes.AddAsync(new Like { AuthorId = author.Id, ItemId = item.Id });
+        await _context.Likes.AddAsync(new Like
+        {
+            AuthorId = author.Id, ItemId = item.Id
+        });
         await _context.SaveChangesAsync();
     }
 
@@ -267,7 +286,10 @@ public class ItemService : IItemService
                 i.Comments.Any(c => c.SimpleSearchVector.Matches(EF.Functions.PlainToTsQuery("simple", searchString))));
         }
         var items = await itemsQuery.ToListAsync();
-        return new SearchItemsResponse { PagesCount = pageCount, Items = _mapper.Map<List<SearchItemData>>(items) };
+        return new SearchItemsResponse
+        {
+            PagesCount = pageCount, Items = _mapper.Map<List<SearchItemData>>(items)
+        };
     }
 
     public async Task<Item?> GetById(int id)
