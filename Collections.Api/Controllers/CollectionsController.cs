@@ -27,8 +27,23 @@ public class CollectionsController : ControllerBase
         return Ok(response);
     }
 
+    [AllowAnonymous]
     [HttpGet("{collectionId:int}")]
     public async Task<IActionResult> Get(int collectionId)
+    {
+        var user = HttpContext.Items["User"] as User;
+        var collection = await _collectionService.GetById(collectionId);
+        if (collection is null)
+        {
+            return NotFound(new { message = "User collection with this id not found" });
+        }
+        var owns = user is not null && await _collectionService.Owns(collection.Id, user);
+        var response = await _collectionService.Get(collectionId, owns);
+        return Ok(response);
+    }
+
+    [HttpGet("{collectionId:int}/for-edit")]
+    public async Task<IActionResult> GetForEdit(int collectionId)
     {
         var user = HttpContext.Items["User"] as User;
         var collection = await _collectionService.GetById(collectionId);
@@ -41,7 +56,7 @@ public class CollectionsController : ControllerBase
         {
             return NotFound(new { message = "User collection with this id not found" });
         }
-        var response = await _collectionService.Get(collectionId);
+        var response = await _collectionService.GetForEdit(collectionId);
         return Ok(response);
     }
 

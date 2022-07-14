@@ -1,6 +1,6 @@
 namespace Collections.Api.Models.Collections;
 
-public class GetCollectionResponse
+public class GetCollectionForEditResponse
 {
     public int Id { get; set; }
 
@@ -13,8 +13,4 @@ public class GetCollectionResponse
     public string? ImageUrl { get; set; }
 
     public List<FieldData> Fields { get; set; }
-
-    public List<ItemData> Items { get; set; }
-
-    public bool IsOwner { get; set; }
 }

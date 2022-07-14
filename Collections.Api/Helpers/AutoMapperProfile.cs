@@ -63,7 +63,7 @@ public class AutoMapperProfile : Profile
 
         CreateMap<EditItemRequest, Item>();
 
-        CreateMap<Item, CollectionItemData>();
+        CreateMap<Item, ItemData>();
 
         CreateMap<CreateCommentRequest, Comment>();
 
@@ -86,6 +86,8 @@ public class AutoMapperProfile : Profile
         CreateMap<Collection, LatestCollectionData>();
 
         CreateMap<Collection, GetCollectionResponse>();
+
+        CreateMap<Collection, GetCollectionForEditResponse>();
 
         CreateMap<User, LatestItemOwnerData>();
     }

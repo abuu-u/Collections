@@ -35,7 +35,9 @@ public interface ICollectionService
 
     Task<GetLargestCollectionsResponse> GetLargestCollections(int count);
 
-    Task<GetCollectionResponse> Get(int id);
+    Task<GetCollectionResponse> Get(int id, bool isOwner);
+
+    Task<GetCollectionForEditResponse> GetForEdit(int id);
 }
 
 public class CollectionService : ICollectionService
@@ -117,7 +119,10 @@ public class CollectionService : ICollectionService
             throw new NotFoundException("Collection couldn't be found");
         }
         var fields = await _context.Fields.Where(f => f.Collection.Id == collectionId).ToListAsync();
-        return new GetFieldsResponse { Fields = _mapper.Map<List<FieldData>>(fields) };
+        return new GetFieldsResponse
+        {
+            Fields = _mapper.Map<List<FieldData>>(fields)
+        };
     }
 
     public async Task<List<TopicData>> GetTopics()
@@ -189,18 +194,41 @@ public class CollectionService : ICollectionService
         var items = await itemsQuery.ToListAsync();
         return new GetCollectionItemsResponse
         {
-            IsOwner = isOwner,
-            Items = _mapper.Map<List<CollectionItemData>>(items)
+            IsOwner = isOwner, Items = _mapper.Map<List<ItemData>>(items)
         };
     }
 
     public async Task<GetLargestCollectionsResponse> GetLargestCollections(int count)
     {
         var collections = await _context.Collections.OrderByDescending(c => c.Items.Count).Take(count).ToListAsync();
-        return new GetLargestCollectionsResponse { Collections = _mapper.Map<List<CollectionData>>(collections) };
+        return new GetLargestCollectionsResponse
+        {
+            Collections = _mapper.Map<List<CollectionData>>(collections)
+        };
     }
 
-    public async Task<GetCollectionResponse> Get(int id)
+    public async Task<GetCollectionResponse> Get(int id, bool isOwner)
+    {
+        var collection = await _context.Collections.Include(c => c.Fields)
+            .Include(c => c.Items)
+            .ThenInclude(i => i.StringValues)
+            .Include(c => c.Items)
+            .ThenInclude(i => i.DateTimeValues)
+            .Include(c => c.Items)
+            .ThenInclude(i => i.IntValues)
+            .Include(c => c.Items)
+            .ThenInclude(i => i.BoolValues)
+            .FirstOrDefaultAsync(c => c.Id == id);
+        if (collection is null)
+        {
+            throw new NotFoundException("User collection with this id not found");
+        }
+        var response = _mapper.Map<GetCollectionResponse>(collection);
+        response.IsOwner = isOwner;
+        return response;
+    }
+
+    public async Task<GetCollectionForEditResponse> GetForEdit(int id)
     {
         var collection = await _context.Collections.Include(c => c.Fields)
             .FirstOrDefaultAsync(c => c.Id == id);
@@ -208,7 +236,7 @@ public class CollectionService : ICollectionService
         {
             throw new NotFoundException("User collection with this id not found");
         }
-        return _mapper.Map<GetCollectionResponse>(collection);
+        return _mapper.Map<GetCollectionForEditResponse>(collection);
     }
 
     public async Task<SearchCollectionsResponse> Search(string? searchString, int page, int count)
@@ -240,7 +268,10 @@ public class CollectionService : ICollectionService
         var tags = await _context.Tags.Where(t => t.Item.Collection.Id == collectionId)
             .DistinctBy(t => t.Name)
             .ToListAsync();
-        return new GetTagsResponse { Tags = _mapper.Map<List<string>>(tags) };
+        return new GetTagsResponse
+        {
+            Tags = _mapper.Map<List<string>>(tags)
+        };
     }
 
     public async Task<Collection?> GetById(int id)

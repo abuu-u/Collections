@@ -4,5 +4,5 @@ public class GetCollectionItemsResponse
 {
     public bool IsOwner { get; set; }
     
-    public List<CollectionItemData> Items { get; set; }
+    public List<ItemData> Items { get; set; }
 }
